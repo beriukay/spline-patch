@@ -26,3 +26,31 @@ using std::vector;
 // Global variables
 const int ESCKEY = 27;          // ASCII value of Escape
 const int startwinsize = 600;   // Start window width & height (pixels)
+
+int main(int argc, char ** argv)
+{
+    // Initilization of OpenGL/GLUT
+    glutInit(&argc, argv);
+    getShaderFilenames(vshader1fname, fshader1fname, argc, argv);
+
+    // Set shader source filenames. Done here, as opposed to in
+    //  function init, so that we can use command-line arguments.
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+
+    // Creating the view window
+    glutInitWindowSize(startwinsize, startwinsize);
+    glutInitWindowPosition(50, 50);
+    glutCreateWindow("CS 381 - Shaders, Normals, Lighting, and Splines Oh My!");
+
+    // Init GLEW & check status - exit on failure
+    if (glewInit() != GLEW_OK)
+    {
+        cerr << "glewInit failed" << endl;
+        exit(1);
+    }
+
+    // Start GLUT event handling loop
+    glutMainLoop();
+
+    return 0;
+}
