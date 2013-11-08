@@ -29,6 +29,9 @@ using std::cout; using std::cerr; using std::endl;
 #include <vector>
 using std::vector;
 
+#include "mouse.h"
+Mouse mousy = Mouse();
+
 // Function prototype
 void documentation();
 
@@ -47,6 +50,48 @@ GLdouble viewmatrix[16],
          viewang = 5.;          // Degrees
 
 
+void drawBezierPatch(int subdivs)
+{
+
+    GLdouble cpts[48] = {
+         1.5, -1.5, 0.,
+//         mousy.getX()*1.5, -1.5, 0.,
+         1.5, -0.5,-3.,
+//         1.5, -0.5*mousy.getY(),-3.,
+         1.5,  0.5,-2.,
+         1.5,  1.5, 1.,
+         0.5, -1.5, 0.,
+         0.5, -0.5, 0.,
+         0.5,  0.5, 0.,
+         0.5,  1.5, 0.,
+        -0.5, -1.5, 0.,
+        -0.5, -0.5, 1.,
+        -0.5,  0.5,-3.,
+        -0.5,  1.5, 1.,
+        -1.5, -1.5, 1.,
+        -1.5, -0.5,-2.,
+        -1.5,  0.5, 1.,
+        -1.5,  1.5, 0.
+    };
+
+    glMap2d(GL_MAP2_VERTEX_3,
+            0., 1.,
+            3,
+            4,
+            0., 1.,
+            3*4,
+            4,
+            cpts);
+    glEnable(GL_MAP2_VERTEX_3);
+
+    glMapGrid2d(subdivs, 0., 1., subdivs, 0., 1.);
+    glEnable(GL_AUTO_NORMAL);
+
+    glFrontFace(GL_CW);  // Normals are evidently backwards here :-(
+    glEvalMesh2(GL_FILL, 0, subdivs, 0, subdivs);
+    glFrontFace(GL_CCW);
+}
+
 // myDisplay
 // The GLUT display function
 void myDisplay()
@@ -57,6 +102,9 @@ void myDisplay()
     // Draw objects
     glEnable(GL_DEPTH_TEST);    // Set up 3D
     // Do stuff
+    glColor3b(1,.7,.7);
+    glTranslated(0,0,-4);
+    drawBezierPatch(30);
     documentation();
     glutSwapBuffers();
 }
@@ -169,6 +217,14 @@ void init()
     glMatrixMode(GL_MODELVIEW);
 }
 
+// myPassiveMotion
+// The GLUT passiveMotion function
+void myPassiveMotion(int x, int y)
+{
+    // Save mouse position in globals
+    mousy.saveMouse(x, y);
+}
+
 int main(int argc, char ** argv)
 {
     // Initilization of OpenGL/GLUT
@@ -196,7 +252,7 @@ int main(int argc, char ** argv)
     glutReshapeFunc(myReshape);
 //    glutMouseFunc(myMouse);
     glutKeyboardFunc(myKeyboard);
-
+    glutPassiveMotionFunc(myPassiveMotion);
     // Start GLUT event handling loop
     glutMainLoop();
 
