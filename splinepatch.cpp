@@ -131,7 +131,7 @@ void myKeyboard(unsigned char key, int x, int y)
     case '-':
         set(viewmatrix,-1., 0., 0.);
         break;
-    case 'R':     
+    case 'R':
     case 'r':
         reset(viewmatrix);
         break;
@@ -208,6 +208,13 @@ int main(int argc, char ** argv)
         cerr << "glewInit failed" << endl;
         exit(1);
     }
+
+    init();
+    glutDisplayFunc(myDisplay);
+    glutIdleFunc(myIdle);
+    glutReshapeFunc(myReshape);
+//    glutMouseFunc(myMouse);
+    glutKeyboardFunc(myKeyboard);
 
     // Start GLUT event handling loop
     glutMainLoop();
