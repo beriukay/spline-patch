@@ -29,6 +29,9 @@ using std::cout; using std::cerr; using std::endl;
 #include <vector>
 using std::vector;
 
+// Function prototype
+void documentation();
+
 // Global variables
 const int ESCKEY = 27;          // ASCII value of Escape
 const int startwinsize = 600;   // Start window width & height (pixels)
@@ -54,29 +57,7 @@ void myDisplay()
     // Draw objects
     glEnable(GL_DEPTH_TEST);    // Set up 3D
     // Do stuff
-
-    // Draw documentation
-    glDisable(GL_DEPTH_TEST);
-    glLoadIdentity();
-    glMatrixMode(GL_PROJECTION);  // Set up simple ortho projection
-    glPushMatrix();
-        glLoadIdentity();
-        gluOrtho2D(0., double(winw), 0., double(winh));
-        glColor3d(0., 0., 0.);        // Black text
-        BitmapPrinter p(20., winh-20., 20.);
-        if(help)
-        {
-            p.print("Arrows         Rotate Scene");
-            p.print("+/-            Zoom in/out");
-            p.print("r              Reset Camera");
-        }
-        else
-        {
-            p.print("h              help");
-        }
-        p.print("Esc            Quit");
-    glPopMatrix();                // Restore prev projection
-    glMatrixMode(GL_MODELVIEW);
+    documentation();
     glutSwapBuffers();
 }
 
@@ -222,3 +203,28 @@ int main(int argc, char ** argv)
     return 0;
 }
 
+void documentation()
+{
+    // Draw documentation
+    glDisable(GL_DEPTH_TEST);
+    glLoadIdentity();
+    glMatrixMode(GL_PROJECTION);  // Set up simple ortho projection
+    glPushMatrix();
+        glLoadIdentity();
+        gluOrtho2D(0., double(winw), 0., double(winh));
+        glColor3d(0., 0., 0.);        // Black text
+        BitmapPrinter p(20., winh-20., 20.);
+        if(help)
+        {
+            p.print("Arrows         Rotate Scene");
+            p.print("+/-            Zoom in/out");
+            p.print("r              Reset Camera");
+        }
+        else
+        {
+            p.print("h              help");
+        }
+        p.print("Esc            Quit");
+    glPopMatrix();                // Restore prev projection
+    glMatrixMode(GL_MODELVIEW);
+}
