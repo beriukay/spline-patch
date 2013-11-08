@@ -44,7 +44,7 @@ bool help = false;
 // Shaders
 string vshader1fname;          // Filename for vertex shader source
 string fshader1fname;          // Filename for fragment shader source
-
+GLhandleARB prog1;             // GLSL Program Object
 // Camera
 GLdouble viewmatrix[16],
          viewang = 5.;          // Degrees
@@ -98,13 +98,36 @@ void myDisplay()
 {
     glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    GLhandleARB theprog;  // CURRENTLY-used program object or 0 if none
+    // Activating the shaders
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    theprog = prog1;
+
+    glEnable(GL_DEPTH_TEST);    // Set up 3D
+
+    // Setting up the camera view
+    glLoadIdentity();
+    glMultMatrixd(viewmatrix);
 
     // Draw objects
-    glEnable(GL_DEPTH_TEST);    // Set up 3D
-    // Do stuff
     glColor3b(1,.7,.7);
     glTranslated(0,0,-4);
     drawBezierPatch(30);
+
+    // Position light source 0 & draw ball there
+    glPushMatrix();
+        glTranslated(0.0, 0.0, 1.0);
+//        glRotated(lightrotang, 1.,0.,0.);
+        glTranslated(-1., 1., 1.);
+        GLfloat origin4[] = { 0.f, 0.f, 0.f, 1.f };
+        glLightfv(GL_LIGHT0, GL_POSITION, origin4);
+        GLfloat spotdir3[] = { 1.f, -1.f, -1.f };
+        glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, spotdir3);
+        glUseProgramObjectARB(0);
+        glColor3d(1., 1., 1.);
+        glutSolidSphere(0.1, 20, 15);
+    glPopMatrix();
+
     documentation();
     glutSwapBuffers();
 }
@@ -252,6 +275,7 @@ int main(int argc, char ** argv)
     glutReshapeFunc(myReshape);
 //    glutMouseFunc(myMouse);
     glutKeyboardFunc(myKeyboard);
+    glutSpecialFunc(mySpecial);
     glutPassiveMotionFunc(myPassiveMotion);
     // Start GLUT event handling loop
     glutMainLoop();
