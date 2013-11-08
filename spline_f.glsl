@@ -1,11 +1,17 @@
-// bpfrag_f.glsl
-// Glenn G. Chappell
-// 18 Oct 2013
-//
-// For CS 381 Fall 2013
-// GLSL Fragment Shader for use with useshaders.cpp
-// Blinn-Phong illumination model, per-fragment lighting
-
+/* File: spline_f.glsl
+ * Authors: Paul Gentemann
+ *          Bucky Frost
+ * Last Modified : Fri 08 Nov 2013
+ * Based off the code by Dr. Glenn G. Chappell
+ *
+ *
+ * For CS 381 Fall 2013
+ * Assignment 5
+ *
+ * Description:
+ * GLSL Fragment Shader for use with splinepatch.cpp
+ * Blinn-Phong illumination model, per-fragment lighting
+ */
 
 uniform float myf1;        // Application float (in [0.,1.]; start: 1.)
 uniform bool myb1;         // Application bool (start: true)

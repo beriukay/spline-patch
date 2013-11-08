@@ -1,11 +1,17 @@
-// bpfrag_v.glsl
-// Glenn G. Chappell
-// 18 Oct 2013
-//
-// For CS 381 Fall 2013
-// GLSL Vertex Shader for use with useshaders.cpp
-// Blinn-Phong illumination model, per-fragment lighting
-
+/* File: spline_v.glsl
+ * Authors: Paul Gentemann
+ *          Bucky Frost
+ * Last Modified : Fri 08 Nov 2013
+ * Based off the code by Dr. Glenn G. Chappell
+ *
+ *
+ * For CS 381 Fall 2013
+ * Assignment 5
+ *
+ * Description:
+ * GLSL Vertex Shader for use with splinepatch.cpp
+ * Blinn-Phong illumination model, per-fragment lighting
+ */
 
 varying vec3 surfpt;       // Point on surface (camera coords)
 varying vec3 surfnorm_un;  // Surface normal (camera coords)
