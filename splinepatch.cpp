@@ -123,7 +123,9 @@ void myDisplay()
 {
     glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     GLhandleARB theprog;  // CURRENTLY-used program object or 0 if none
+
     // Activating the shaders
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     theprog = prog1;
@@ -145,7 +147,7 @@ void myDisplay()
         glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, spotdir3);
         glUseProgramObjectARB(0);
         glColor3d(1., 1., 1.);
-        glutSolidSphere(0.1, 20, 15);
+        glutSolidSphere(0.1, 20, 15);  // obj for light source
     glPopMatrix();
 
     //Send info to shader
@@ -167,7 +169,7 @@ void myDisplay()
     }
 
     // Draw objects
-    glColor3b(0.7, 0.0, 0.7);
+    glColor3b(1, 1, 1);
     glTranslated(0,0,-4);
     if(wave)
         drawBezierPatch(numsubdivs, modd);
@@ -230,9 +232,7 @@ void myKeyboard(unsigned char key, int x, int y)
     case '-':
         set(viewmatrix, 0., 0., -1.);
         break;
-// Commenting out the below section until the rotation function
-// is rectectified
-/*    case '<':
+    case '<':
         set(viewmatrix, 0., -1., 0., 10,1,0,0);
         break;
     case '>':
@@ -244,7 +244,7 @@ void myKeyboard(unsigned char key, int x, int y)
     case '.':
         set(viewmatrix, 0., 1., 0., -10,0,1,0);
         break;
-*/
+
     case 'R':
     case 'r':
         reset(viewmatrix);
