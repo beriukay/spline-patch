@@ -45,6 +45,7 @@ bool help = false;
 string vshader1fname;          // Filename for vertex shader source
 string fshader1fname;          // Filename for fragment shader source
 GLhandleARB prog1;             // GLSL Program Object
+
 // Camera
 GLdouble viewmatrix[16],
          viewang = 5.;          // Degrees
@@ -52,7 +53,6 @@ GLdouble viewmatrix[16],
 
 void drawBezierPatch(int subdivs)
 {
-
     GLdouble cpts[48] = {
          1.5, -1.5, 0.,
 //         mousy.getX()*1.5, -1.5, 0.,
@@ -109,10 +109,7 @@ void myDisplay()
     glLoadIdentity();
     glMultMatrixd(viewmatrix);
 
-    // Draw objects
-    glColor3b(1,.7,.7);
-    glTranslated(0,0,-4);
-    drawBezierPatch(30);
+
 
     // Position light source 0 & draw ball there
     glPushMatrix();
@@ -127,6 +124,30 @@ void myDisplay()
         glColor3d(1., 1., 1.);
         glutSolidSphere(0.1, 20, 15);
     glPopMatrix();
+
+
+    //Send info to shader
+    if (theprog)
+    {
+        GLint loc;  // Location for shader vars
+
+        loc = glGetUniformLocationARB(theprog, "myb1");
+        if (loc != -1)
+        {
+            glUniform1i(loc, false);
+        }
+
+        loc = glGetUniformLocationARB(theprog, "myf1");
+        if (loc != -1)
+        {
+            glUniform1f(loc, GLfloat(.0));
+        }
+    }
+
+    // Draw objects
+    glColor3b(0.7, 0.0, 0.7);
+    glTranslated(0,0,-4);
+    drawBezierPatch(30);
 
     documentation();
     glutSwapBuffers();
@@ -244,10 +265,11 @@ void init()
 // The GLUT passiveMotion function
 void myPassiveMotion(int x, int y)
 {
-    // Save mouse position in globals
+    // Save mouse position in class (haha)
     mousy.saveMouse(x, y);
 }
 
+// The main
 int main(int argc, char ** argv)
 {
     // Initilization of OpenGL/GLUT
