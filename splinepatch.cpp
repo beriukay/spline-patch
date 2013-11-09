@@ -28,18 +28,40 @@ using std::string;
 using std::cout; using std::cerr; using std::endl;
 #include <vector>
 using std::vector;
-
+#include <sstream>
+using std::ostringstream;
+#include <iomanip>
+using std::setprecision;
+using std::fixed;
+#include <cmath>
+using std::sin;
 #include "mouse.h"
 Mouse mousy = Mouse();
 
-// Function prototype
+// Function prototypes
 void documentation();
+void drawBezierPatch(int subdivs, double mod);
+void myDisplay();
+void myIdle();
+void reset(GLdouble *arr);
+void myKeyboard(unsigned char key, int x, int y);
+void myPassiveMotion(int x, int y);
+void init();
+void myReshape(int w, int h);
+void set(GLdouble *arr, GLdouble tx, GLdouble ty, GLdouble tz,
+         GLdouble rang, GLdouble rx, GLdouble ry, GLdouble rz);
 
 // Global variables
-const int ESCKEY = 27;          // ASCII value of Escape
-const int startwinsize = 600;   // Start window width & height (pixels)
-int winw = 1, winh = 1;         // Window width, height (pixels)
+const int ESCKEY = 27;         // ASCII value of Escape
+const int startwinsize = 600;  // Start window width & height (pixels)
+int winw = 1, winh = 1;        // Window width, height (pixels)
 bool help = false;
+
+int numsubdivs;                // Number of subdivisions for object
+const int minsubdivs = 1;      //  Minumum of above
+const int maxsubdivs = 50;     //  Maximum of above
+
+bool wave;                     // Starts up the wave to propagate throught the splines
 
 // Shaders
 string vshader1fname;          // Filename for vertex shader source
@@ -48,30 +70,33 @@ GLhandleARB prog1;             // GLSL Program Object
 
 // Camera
 GLdouble viewmatrix[16],
-         viewang = 5.;          // Degrees
+         viewang = 5.;         // Degrees
 
+double modd;                   // Value for used in the waves in the Bezier patches
 
-void drawBezierPatch(int subdivs)
+// drawBezierPatch
+// Draws a number of control points for a bezier patch
+// The z coordinates of all the points are translated
+// by the sine of the mod parameter.
+void drawBezierPatch(int subdivs, double mod)
 {
     GLdouble cpts[48] = {
-         1.5, -1.5, 0.,
-//         mousy.getX()*1.5, -1.5, 0.,
-         1.5, -0.5,-3.,
-//         1.5, -0.5*mousy.getY(),-3.,
-         1.5,  0.5,-2.,
-         1.5,  1.5, 1.,
-         0.5, -1.5, 0.,
-         0.5, -0.5, 0.,
-         0.5,  0.5, 0.,
-         0.5,  1.5, 0.,
-        -0.5, -1.5, 0.,
-        -0.5, -0.5, 1.,
-        -0.5,  0.5,-3.,
-        -0.5,  1.5, 1.,
-        -1.5, -1.5, 1.,
-        -1.5, -0.5,-2.,
-        -1.5,  0.5, 1.,
-        -1.5,  1.5, 0.
+         1.5, -1.5, sin(mod) * 0.,
+         1.5, -0.5, sin(mod) * -3.,
+         1.5,  0.5, sin(mod) * -2.,
+         1.5,  1.5, sin(mod) * 1.,
+         0.5, -1.5, sin(mod) * 0.,
+         0.5, -0.5, sin(mod) * 0.,
+         0.5,  0.5, sin(mod) * 0.,
+         0.5,  1.5, sin(mod) * 0.,
+        -0.5, -1.5, sin(mod) * 0.,
+        -0.5, -0.5, sin(mod) * 1.,
+        -0.5,  0.5, sin(mod) * -3.,
+        -0.5,  1.5, sin(mod) * 1.,
+        -1.5, -1.5, sin(mod) * 1.,
+        -1.5, -0.5, sin(mod) * -2.,
+        -1.5,  0.5, sin(mod) * 1.,
+        -1.5,  1.5, sin(mod) * 0.
     };
 
     glMap2d(GL_MAP2_VERTEX_3,
@@ -109,8 +134,6 @@ void myDisplay()
     glLoadIdentity();
     glMultMatrixd(viewmatrix);
 
-
-
     // Position light source 0 & draw ball there
     glPushMatrix();
         glTranslated(0.0, 0.0, 1.0);
@@ -124,7 +147,6 @@ void myDisplay()
         glColor3d(1., 1., 1.);
         glutSolidSphere(0.1, 20, 15);
     glPopMatrix();
-
 
     //Send info to shader
     if (theprog)
@@ -147,7 +169,10 @@ void myDisplay()
     // Draw objects
     glColor3b(0.7, 0.0, 0.7);
     glTranslated(0,0,-4);
-    drawBezierPatch(30);
+    if(wave)
+        drawBezierPatch(numsubdivs, modd);
+    else
+        drawBezierPatch(numsubdivs, 0);
 
     documentation();
     glutSwapBuffers();
@@ -157,6 +182,7 @@ void myDisplay()
 // The GLUT idle function
 void myIdle()
 {
+    modd += 0.1;
     glutPostRedisplay();
     // Print OpenGL errors, if there are any (for debugging)
     static int error_count = 0;
@@ -199,14 +225,40 @@ void myKeyboard(unsigned char key, int x, int y)
         exit(0);
         break;
     case '+':
-        set(viewmatrix, 1., 0., 0.);
+        set(viewmatrix, 0., 0., 1.);
         break;
     case '-':
-        set(viewmatrix,-1., 0., 0.);
+        set(viewmatrix, 0., 0., -1.);
         break;
+// Commenting out the below section until the rotation function
+// is rectectified
+/*    case '<':
+        set(viewmatrix, 0., -1., 0., 10,1,0,0);
+        break;
+    case '>':
+        set(viewmatrix, 0., 1., 0., -10,1,0,0);
+        break;
+    case ',':
+        set(viewmatrix, 0., -1., 0., 10,0,1,0);
+        break;
+    case '.':
+        set(viewmatrix, 0., 1., 0., -10,0,1,0);
+        break;
+*/
     case 'R':
     case 'r':
         reset(viewmatrix);
+        break;
+    case ' ':
+        wave = !wave;
+        break;
+    case '(':
+        if(numsubdivs > minsubdivs)
+            --numsubdivs;
+        break;
+    case ')':
+        if(numsubdivs < maxsubdivs)
+            ++numsubdivs;
         break;
     case 'h':
     case 'H':
@@ -259,6 +311,9 @@ void init()
 {
     reset(viewmatrix);    // Reset camera position
     glMatrixMode(GL_MODELVIEW);
+    modd = 0.0;
+    wave = false;
+    numsubdivs = 1;
 }
 
 // myPassiveMotion
@@ -299,6 +354,7 @@ int main(int argc, char ** argv)
     glutKeyboardFunc(myKeyboard);
     glutSpecialFunc(mySpecial);
     glutPassiveMotionFunc(myPassiveMotion);
+
     // Start GLUT event handling loop
     glutMainLoop();
 
@@ -318,9 +374,13 @@ void documentation()
         BitmapPrinter p(20., winh-20., 20.);
         if(help)
         {
+            ostringstream os2;
+            os2 << fixed << setprecision(2) << numsubdivs;
             p.print("Arrows         Rotate Scene");
+            p.print("( )            Change Subdivisions (" + os2.str() + ")");
             p.print("+/-            Zoom in/out");
             p.print("r              Reset Camera");
+            p.print(string("space          Start wave (" )+ (wave ? "true" : "false") + ")");
         }
         else
         {
