@@ -2,7 +2,7 @@
  * Paul Gentemann
  * CS 381
  * File Name : splinepatch.cpp
- * Last Modified : Sat 09 Nov 2013 09:26:20 PM AKST
+ * Last Modified : Sat 09 Nov 2013 11:46:15 PM AKST
  * Description : A pair of spline plains, patched together, that will
  * ripple upon user input.
  */
@@ -40,28 +40,23 @@ Mouse mousy = Mouse();
 
 // Function prototypes
 void documentation();
-void drawBezierPatch(int subdivs, double mod);
+void waveFun(int);
+void drawBezierPatch(int, double, GLdouble *);
 void myDisplay();
 void myIdle();
-void reset(GLdouble *arr);
-void myKeyboard(unsigned char key, int x, int y);
-void myPassiveMotion(int x, int y);
+void reset(GLdouble);
+void myKeyboard(unsigned char, int, int);
+void myPassiveMotion(int, int);
 void init();
-void myReshape(int w, int h);
-void set(GLdouble *arr, GLdouble tx, GLdouble ty, GLdouble tz,
-         GLdouble rang, GLdouble rx, GLdouble ry, GLdouble rz);
+void myReshape(int, int);
+void set(GLdouble, GLdouble, GLdouble, GLdouble,
+         GLdouble, GLdouble, GLdouble, GLdouble);
 
 // Global variables
 const int ESCKEY = 27;         // ASCII value of Escape
 const int startwinsize = 600;  // Start window width & height (pixels)
 int winw = 1, winh = 1;        // Window width, height (pixels)
 bool help = false;
-
-int numsubdivs;                // Number of subdivisions for object
-const int minsubdivs = 1;      //  Minumum of above
-const int maxsubdivs = 50;     //  Maximum of above
-
-bool wave;                     // Starts up the wave to propagate throught the splines
 
 // Shaders
 string vshader1fname;          // Filename for vertex shader source
@@ -74,29 +69,46 @@ GLfloat shaderfloat1 = .5;
 GLdouble viewmatrix[16],
          viewang = 5.;         // Degrees
 
-double modd;                   // Value for used in the waves in the Bezier patches
+// Wave/Spline Patches
+int numsubdivs;           // Number of subdivisions for object
+const int minsubdivs = 1;      //  Minumum of above
+const int maxsubdivs = 50;     //  Maximum of above
+const int PTS = 4;             // Number of control points in a patch
+const int EDGES = 4;           // Sides in a patch
+const int SIZE = PTS*EDGES*3;  // Size of Patch Arrays
+bool wave;                     // Starts the wave propagation.
+double modd;                   // Value for the waves in the Bezier patches
 
-// Bezier Patches
-GLdouble b1[48] = {
+GLdouble b1[SIZE] = {
     1.5,-1.5, 0.0,   1.5,-0.5,-3.0,   1.5, 0.5,-2.0,   1.5, 1.5, 1.0,
     0.5,-1.5, 0.0,   0.5,-0.5, 0.0,   0.5, 0.5, 0.0,   0.5, 1.5, 0.0,
    -0.5,-1.5, 0.0,  -0.5,-0.5, 1.0,  -0.5, 0.5,-3.0,  -0.5, 1.5, 1.0,
    -1.5,-1.5, 1.0,  -1.5,-0.5,-2.0,  -1.5, 0.5, 1.0,  -1.5, 1.5, 0.0};
 
-GLdouble b2[48] = {
+GLdouble b2[SIZE] = {
     1.5, 1.5, 1.0,   1.5, 0.5,-2.0,   2.5, 0.5,-2.0,   1.5, 1.5, 1.0,
     0.5, 1.5, 0.0,   0.5, 0.5, 0.0,   1.5, 0.5, 0.0,   0.5, 1.5, 0.0,
    -0.5, 1.5, 1.0,  -0.5, 0.5,-3.0,  -1.5, 0.5,-3.0,  -0.5, 1.5, 1.0,
    -1.5, 1.5, 0.0,  -1.5, 0.5, 1.0,  -2.5, 0.5, 1.0,  -1.5, 1.5, 0.0};
 
-
+// waveFun
+// Propogates a wave through one of the axes of a spline patch. 
+void waveFun(GLdouble *arr, int column, int axis)
+{
+    for (int i = 0; i < PTS; ++i)
+    {
+        arr[(column * 3 + axis) * i] *= sin(modd);
+        cout << (column + axis) * 3 + i << endl;
+    }
+}
 
 // drawBezierPatch
 // Draws a number of control points for a bezier patch
 // The z coordinates of all the points are translated
 // by the sine of the mod parameter.
-void drawBezierPatch(int subdivs, double mod)
+void drawBezierPatch(int subdivs, double mod, GLdouble *cpts)
 {
+    glColor3d(0.,0.,0.5);
     glMap2d(GL_MAP2_VERTEX_3, 0., 1., 3, 4, 0., 1., 3*4, 4, cpts);
     glEnable(GL_MAP2_VERTEX_3);
 
@@ -131,9 +143,8 @@ void myDisplay()
 
     // Position light source 0 & draw ball there
     glPushMatrix();
-        glTranslated(0.0, 0.0, 1.0);
 //        glRotated(lightrotang, 1.,0.,0.);
-        glTranslated(-1., 1., 1.);
+        glTranslated(-1., 1., 2.);
         GLfloat origin4[] = { 0.f, 0.f, 0.f, 1.f };
         glLightfv(GL_LIGHT0, GL_POSITION, origin4);
         GLfloat spotdir3[] = { 1.f, -1.f, -1.f };
@@ -143,6 +154,7 @@ void myDisplay()
         glutSolidSphere(0.1, 20, 15);  // obj for light source
     glPopMatrix();
 
+    glUseProgramObjectARB(theprog);
 
     //Send info to shader
     if (theprog)
@@ -163,12 +175,17 @@ void myDisplay()
     }
 
     // Draw objects
-    glColor3b(1, 1, 1);
     glTranslated(0,0,-4);
     if(wave)
-        drawBezierPatch(numsubdivs, modd);
+    {
+        drawBezierPatch(numsubdivs, modd, b1);
+        drawBezierPatch(numsubdivs, modd, b2);
+    }
     else
-        drawBezierPatch(numsubdivs, 0);
+    {
+        drawBezierPatch(numsubdivs, 0, b1);
+        drawBezierPatch(numsubdivs, 0, b2);
+    }
 
     documentation();
     glutSwapBuffers();
@@ -179,6 +196,8 @@ void myDisplay()
 void myIdle()
 {
     modd += 0.1;
+    waveFun(b1, 3, 2);
+    waveFun(b2, 0, 2);
     glutPostRedisplay();
     // Print OpenGL errors, if there are any (for debugging)
     static int error_count = 0;
@@ -238,7 +257,6 @@ void myKeyboard(unsigned char key, int x, int y)
     case '.':
         set(viewmatrix, 0., 1., 0., -10,0,1,0);
         break;
-
     case 'R':
     case 'r':
         reset(viewmatrix);
@@ -257,21 +275,19 @@ void myKeyboard(unsigned char key, int x, int y)
     case 'h':
     case 'H':
         help = !help;
-    case ' ':     // Space: toggle shader bool
+        break;
+    case 'f':     // Space: toggle shader bool
         shaderbool1 = !shaderbool1;
-        glutPostRedisplay();
         break;
     case '[':     // [: Decrease shader float
         shaderfloat1 -= 0.02;
         if (shaderfloat1 < 0.)
             shaderfloat1 = 0.;
-        glutPostRedisplay();
         break;
     case ']':     // ]: Increase shader float
         shaderfloat1 += 0.02;
         if (shaderfloat1 > 1.)
             shaderfloat1 = 1.;
-        glutPostRedisplay();
         break;
     }
     glutPostRedisplay();
@@ -323,7 +339,10 @@ void init()
     glMatrixMode(GL_MODELVIEW);
     modd = 0.0;
     wave = false;
-    numsubdivs = 1;
+    numsubdivs = 10;
+
+    // Shaders
+    prog1 = makeProgramObjectFromFiles(vshader1fname, fshader1fname);
 }
 
 // myPassiveMotion
