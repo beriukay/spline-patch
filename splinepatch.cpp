@@ -2,7 +2,7 @@
  * Paul Gentemann
  * CS 381
  * File Name : splinepatch.cpp
- * Last Modified : Thu 07 Nov 2013 12:02:38 PM AKST
+ * Last Modified : Sat 09 Nov 2013 09:26:20 PM AKST
  * Description : A pair of spline plains, patched together, that will
  * ripple upon user input.
  */
@@ -67,6 +67,8 @@ bool wave;                     // Starts up the wave to propagate throught the s
 string vshader1fname;          // Filename for vertex shader source
 string fshader1fname;          // Filename for fragment shader source
 GLhandleARB prog1;             // GLSL Program Object
+bool shaderbool1 = false;
+GLfloat shaderfloat1 = .5;
 
 // Camera
 GLdouble viewmatrix[16],
@@ -74,39 +76,28 @@ GLdouble viewmatrix[16],
 
 double modd;                   // Value for used in the waves in the Bezier patches
 
+// Bezier Patches
+GLdouble b1[48] = {
+    1.5,-1.5, 0.0,   1.5,-0.5,-3.0,   1.5, 0.5,-2.0,   1.5, 1.5, 1.0,
+    0.5,-1.5, 0.0,   0.5,-0.5, 0.0,   0.5, 0.5, 0.0,   0.5, 1.5, 0.0,
+   -0.5,-1.5, 0.0,  -0.5,-0.5, 1.0,  -0.5, 0.5,-3.0,  -0.5, 1.5, 1.0,
+   -1.5,-1.5, 1.0,  -1.5,-0.5,-2.0,  -1.5, 0.5, 1.0,  -1.5, 1.5, 0.0};
+
+GLdouble b2[48] = {
+    1.5, 1.5, 1.0,   1.5, 0.5,-2.0,   2.5, 0.5,-2.0,   1.5, 1.5, 1.0,
+    0.5, 1.5, 0.0,   0.5, 0.5, 0.0,   1.5, 0.5, 0.0,   0.5, 1.5, 0.0,
+   -0.5, 1.5, 1.0,  -0.5, 0.5,-3.0,  -1.5, 0.5,-3.0,  -0.5, 1.5, 1.0,
+   -1.5, 1.5, 0.0,  -1.5, 0.5, 1.0,  -2.5, 0.5, 1.0,  -1.5, 1.5, 0.0};
+
+
+
 // drawBezierPatch
 // Draws a number of control points for a bezier patch
 // The z coordinates of all the points are translated
 // by the sine of the mod parameter.
 void drawBezierPatch(int subdivs, double mod)
 {
-    GLdouble cpts[48] = {
-         1.5, -1.5, sin(mod) * 0.,
-         1.5, -0.5, sin(mod) * -3.,
-         1.5,  0.5, sin(mod) * -2.,
-         1.5,  1.5, sin(mod) * 1.,
-         0.5, -1.5, sin(mod) * 0.,
-         0.5, -0.5, sin(mod) * 0.,
-         0.5,  0.5, sin(mod) * 0.,
-         0.5,  1.5, sin(mod) * 0.,
-        -0.5, -1.5, sin(mod) * 0.,
-        -0.5, -0.5, sin(mod) * 1.,
-        -0.5,  0.5, sin(mod) * -3.,
-        -0.5,  1.5, sin(mod) * 1.,
-        -1.5, -1.5, sin(mod) * 1.,
-        -1.5, -0.5, sin(mod) * -2.,
-        -1.5,  0.5, sin(mod) * 1.,
-        -1.5,  1.5, sin(mod) * 0.
-    };
-
-    glMap2d(GL_MAP2_VERTEX_3,
-            0., 1.,
-            3,
-            4,
-            0., 1.,
-            3*4,
-            4,
-            cpts);
+    glMap2d(GL_MAP2_VERTEX_3, 0., 1., 3, 4, 0., 1., 3*4, 4, cpts);
     glEnable(GL_MAP2_VERTEX_3);
 
     glMapGrid2d(subdivs, 0., 1., subdivs, 0., 1.);
@@ -136,6 +127,8 @@ void myDisplay()
     glLoadIdentity();
     glMultMatrixd(viewmatrix);
 
+
+
     // Position light source 0 & draw ball there
     glPushMatrix();
         glTranslated(0.0, 0.0, 1.0);
@@ -150,6 +143,7 @@ void myDisplay()
         glutSolidSphere(0.1, 20, 15);  // obj for light source
     glPopMatrix();
 
+
     //Send info to shader
     if (theprog)
     {
@@ -158,13 +152,13 @@ void myDisplay()
         loc = glGetUniformLocationARB(theprog, "myb1");
         if (loc != -1)
         {
-            glUniform1i(loc, false);
+            glUniform1i(loc, shaderbool1);
         }
 
         loc = glGetUniformLocationARB(theprog, "myf1");
         if (loc != -1)
         {
-            glUniform1f(loc, GLfloat(.0));
+            glUniform1f(loc, shaderfloat1);
         }
     }
 
@@ -263,6 +257,22 @@ void myKeyboard(unsigned char key, int x, int y)
     case 'h':
     case 'H':
         help = !help;
+    case ' ':     // Space: toggle shader bool
+        shaderbool1 = !shaderbool1;
+        glutPostRedisplay();
+        break;
+    case '[':     // [: Decrease shader float
+        shaderfloat1 -= 0.02;
+        if (shaderfloat1 < 0.)
+            shaderfloat1 = 0.;
+        glutPostRedisplay();
+        break;
+    case ']':     // ]: Increase shader float
+        shaderfloat1 += 0.02;
+        if (shaderfloat1 > 1.)
+            shaderfloat1 = 1.;
+        glutPostRedisplay();
+        break;
     }
     glutPostRedisplay();
 }
