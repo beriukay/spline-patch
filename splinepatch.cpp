@@ -2,7 +2,7 @@
  * Paul Gentemann
  * CS 381
  * File Name : splinepatch.cpp
- * Last Modified : Sat 09 Nov 2013 11:46:15 PM AKST
+ * Last Modified : Sun 10 Nov 2013 05:16:20 AM AKST
  * Description : A pair of spline plains, patched together, that will
  * ripple upon user input.
  */
@@ -41,7 +41,7 @@ Mouse mousy = Mouse();
 // Function prototypes
 void documentation();
 void waveFun(int);
-void drawBezierPatch(int, double, GLdouble *);
+void drawBezierPatch(int, GLdouble *);
 void myDisplay();
 void myIdle();
 void reset(GLdouble);
@@ -57,12 +57,13 @@ const int ESCKEY = 27;         // ASCII value of Escape
 const int startwinsize = 600;  // Start window width & height (pixels)
 int winw = 1, winh = 1;        // Window width, height (pixels)
 bool help = false;
+int zoom = -4;
 
 // Shaders
+bool shaderbool1 = true;
 string vshader1fname;          // Filename for vertex shader source
 string fshader1fname;          // Filename for fragment shader source
 GLhandleARB prog1;             // GLSL Program Object
-bool shaderbool1 = false;
 GLfloat shaderfloat1 = .5;
 
 // Camera
@@ -80,33 +81,31 @@ bool wave;                     // Starts the wave propagation.
 double modd;                   // Value for the waves in the Bezier patches
 
 GLdouble b1[SIZE] = {
-    1.5,-1.5, 0.0,   1.5,-0.5,-3.0,   1.5, 0.5,-2.0,   1.5, 1.5, 1.0,
+    1.5,-1.5, 0.0,   1.5,-0.5,-0.0,   1.5, 0.5,-0.0,   1.5, 1.5, 0.0,
     0.5,-1.5, 0.0,   0.5,-0.5, 0.0,   0.5, 0.5, 0.0,   0.5, 1.5, 0.0,
-   -0.5,-1.5, 0.0,  -0.5,-0.5, 1.0,  -0.5, 0.5,-3.0,  -0.5, 1.5, 1.0,
-   -1.5,-1.5, 1.0,  -1.5,-0.5,-2.0,  -1.5, 0.5, 1.0,  -1.5, 1.5, 0.0};
+   -0.5,-1.5, 0.0,  -0.5,-0.5, 0.0,  -0.5, 0.5,-0.0,  -0.5, 1.5, 0.0,
+   -1.5,-1.5, 0.0,  -1.5,-0.5,-0.0,  -1.5, 0.5, 0.0,  -1.5, 1.5, 0.0};
 
 GLdouble b2[SIZE] = {
-    1.5, 1.5, 1.0,   1.5, 0.5,-2.0,   2.5, 0.5,-2.0,   1.5, 1.5, 1.0,
-    0.5, 1.5, 0.0,   0.5, 0.5, 0.0,   1.5, 0.5, 0.0,   0.5, 1.5, 0.0,
-   -0.5, 1.5, 1.0,  -0.5, 0.5,-3.0,  -1.5, 0.5,-3.0,  -0.5, 1.5, 1.0,
-   -1.5, 1.5, 0.0,  -1.5, 0.5, 1.0,  -2.5, 0.5, 1.0,  -1.5, 1.5, 0.0};
+    1.5, 0.5, 0.0,   1.5, 1.5,-0.0,   2.5, 1.8,-0.0,   3.0, 3.5,-0.0,
+    0.5, 0.5, 0.0,   0.5, 1.5, 0.0,   1.5, 2.0, 0.0,   0.0, 3.5, 0.0,
+   -0.5, 0.5, 0.0,  -0.5, 1.5,-0.0,  -1.5, 2.3,-0.0,  -0.0, 3.5,-0.0,
+   -1.5, 0.5, 0.0,  -1.5, 1.5, 0.0,  -2.5, 2.8, 0.0,  -3.0, 3.5, 0.0};
 
 // waveFun
 // Propogates a wave through one of the axes of a spline patch. 
-void waveFun(GLdouble *arr, int column, int axis)
+void waveFun(GLdouble *arr, int column, int axis, int mult)
 {
     for (int i = 0; i < PTS; ++i)
     {
-        arr[(column * 3 + axis) * i] *= sin(modd);
-        cout << (column + axis) * 3 + i << endl;
+        arr[PTS * 3 * i + (3 * column + axis)] = mult * sin(modd);
     }
 }
 
 // drawBezierPatch
-// Draws a number of control points for a bezier patch
-// The z coordinates of all the points are translated
-// by the sine of the mod parameter.
-void drawBezierPatch(int subdivs, double mod, GLdouble *cpts)
+// Draws a number of control points for a bezier patch. The z coordinates 
+// of all the points are translated by the sine of the mod parameter.
+void drawBezierPatch(int subdivs, GLdouble *cpts)
 {
     glColor3d(0.,0.,0.5);
     glMap2d(GL_MAP2_VERTEX_3, 0., 1., 3, 4, 0., 1., 3*4, 4, cpts);
@@ -139,11 +138,8 @@ void myDisplay()
     glLoadIdentity();
     glMultMatrixd(viewmatrix);
 
-
-
     // Position light source 0 & draw ball there
     glPushMatrix();
-//        glRotated(lightrotang, 1.,0.,0.);
         glTranslated(-1., 1., 2.);
         GLfloat origin4[] = { 0.f, 0.f, 0.f, 1.f };
         glLightfv(GL_LIGHT0, GL_POSITION, origin4);
@@ -160,13 +156,11 @@ void myDisplay()
     if (theprog)
     {
         GLint loc;  // Location for shader vars
-
         loc = glGetUniformLocationARB(theprog, "myb1");
         if (loc != -1)
         {
             glUniform1i(loc, shaderbool1);
         }
-
         loc = glGetUniformLocationARB(theprog, "myf1");
         if (loc != -1)
         {
@@ -175,16 +169,19 @@ void myDisplay()
     }
 
     // Draw objects
-    glTranslated(0,0,-4);
+    glTranslated(0,0,zoom);
     if(wave)
     {
-        drawBezierPatch(numsubdivs, modd, b1);
-        drawBezierPatch(numsubdivs, modd, b2);
+        modd += 0.1;
+        waveFun(b1, 2, 2, 1);
+        waveFun(b2, 2, 2, -1);
+        drawBezierPatch(numsubdivs, b1);
+        drawBezierPatch(numsubdivs, b2);
     }
     else
     {
-        drawBezierPatch(numsubdivs, 0, b1);
-        drawBezierPatch(numsubdivs, 0, b2);
+        drawBezierPatch(numsubdivs, b1);
+        drawBezierPatch(numsubdivs, b2);
     }
 
     documentation();
@@ -195,9 +192,6 @@ void myDisplay()
 // The GLUT idle function
 void myIdle()
 {
-    modd += 0.1;
-    waveFun(b1, 3, 2);
-    waveFun(b2, 0, 2);
     glutPostRedisplay();
     // Print OpenGL errors, if there are any (for debugging)
     static int error_count = 0;
@@ -229,7 +223,6 @@ void reset(GLdouble *arr)
     glGetDoublev(GL_MODELVIEW_MATRIX, arr);
 }
 
-
 // myKeyboard
 // The GLUT keyboard function
 void myKeyboard(unsigned char key, int x, int y)
@@ -240,10 +233,12 @@ void myKeyboard(unsigned char key, int x, int y)
         exit(0);
         break;
     case '+':
+        ++zoom;
         set(viewmatrix, 0., 0., 1.);
         break;
     case '-':
-        set(viewmatrix, 0., 0., -1.);
+        --zoom;
+        set(viewmatrix, 0., 0.,-1.);
         break;
     case '<':
         set(viewmatrix, 0., -1., 0., 10,1,0,0);
@@ -259,6 +254,7 @@ void myKeyboard(unsigned char key, int x, int y)
         break;
     case 'R':
     case 'r':
+        zoom = -4;
         reset(viewmatrix);
         break;
     case ' ':
@@ -297,21 +293,25 @@ void myKeyboard(unsigned char key, int x, int y)
 // The GLUT special function
 void mySpecial(int key, int x, int y)
 {
+    glLoadMatrixd(viewmatrix);
+    glTranslated(0., 0., zoom);
     switch (key)
     {
         case GLUT_KEY_LEFT:
-            set(viewmatrix, 0.,0.,0., -viewang, 0.,1.,0.);
+            glRotated(-5, 0., 1., 0.);
             break;
         case GLUT_KEY_RIGHT:
-            set(viewmatrix, 0.,0.,0., viewang, 0.,1.,0.);
+            glRotated(5, 0., 1., 0.);
             break;
         case GLUT_KEY_UP:
-            set(viewmatrix, 0.,0.,0., -viewang,0.,.0,1.);
+            glRotated(-5, 0., 0., 1.);
             break;
         case GLUT_KEY_DOWN:
-            set(viewmatrix, 0.,0.,0., viewang,0.,.0,1.);
+            glRotated(5, 0., 0., 1.);
             break;
     }
+    glTranslated(0., 0., -zoom);
+    glGetDoublev(GL_MODELVIEW_MATRIX, viewmatrix);
     glutPostRedisplay();
 }
 
