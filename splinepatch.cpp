@@ -46,7 +46,7 @@ void myDisplay();
 void myIdle();
 void resetMatrix(GLdouble);
 void resetZoom();
-void fixShaderFloat(GLfloat);
+void fixShaderFloat(GLfloat *);
 void myKeyboard(unsigned char, int, int);
 void myPassiveMotion(int, int);
 void init();
@@ -207,10 +207,10 @@ void resetMatrix(GLdouble *arr)
 
 // fixShaderFloat
 // Makes sure that the shader float does not exceed the bounds [0,1].
-void fixShaderFloat(GLfloat f)
+void fixShaderFloat(GLfloat *f)
 {
-    if (f < 0.) f = 0.;
-    if (f > 1.) f = 1.;
+    if (*f < 0.) *f = 0.;
+    if (*f > 1.) *f = 1.;
 }
 
 // resetZoom
@@ -268,11 +268,11 @@ void myKeyboard(unsigned char key, int x, int y)
         break;
     case '[':     // [: Decrease shader float
         shaderfloat1 -= 0.02;
-        fixShaderFloat(shaderfloat1);
+        fixShaderFloat(&shaderfloat1);
         break;
     case ']':     // ]: Increase shader float
         shaderfloat1 += 0.02;
-        fixShaderFloat(shaderfloat1);
+        fixShaderFloat(&shaderfloat1);
         break;
     }
     glutPostRedisplay();
@@ -393,16 +393,18 @@ void documentation()
         BitmapPrinter p(20., winh - 20., 20.);
         if(help)
         {
+            ostringstream os1;
             ostringstream os2;
+            os1 << fixed << setprecision(2) << shaderfloat1;
             os2 << fixed << setprecision(2) << numsubdivs;
             p.print("Arrows         Rotate Scene");
+            p.print("[ ]            Change Lighting (" + os1.str() + ")");
             p.print("( )            Change Subdivisions (" + os2.str() + ")");
             p.print("+/-            Zoom in/out");
             p.print("r              Reset Camera");
+            p.print("space          Distort Spline");
             p.print(string("w              Wire-Frame (" )
 	    		+ (wireFrame ? "true" : "false") + ")");
-            p.print(string("space          Start wave (" )
-                        + (wave ? "true" : "false") + ")");
             p.print(string("f              Lighting (" )
                         + (shaderbool1 ? "true" : "false") + ")");
         }
