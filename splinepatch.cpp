@@ -2,9 +2,9 @@
  * Paul Gentemann
  * CS 381
  * File Name : splinepatch.cpp
- * Last Modified : Mon 11 Nov 2013 08:13:48 AM AKST
+ * Last Modified : Mon 11 Nov 2013 02:41:22 PM AKST
  * Description : A pair of spline plains, patched together, that will
- * ripple upon user input.
+ * make a wave upon user input.
  */
 
 // OpenGL/GLUT includes - DO THESE FIRST
@@ -25,18 +25,14 @@ using std::exit;
 #include <string>
 using std::string;
 #include <iostream>
-using std::cout; using std::cerr; using std::endl;
-#include <vector>
-using std::vector;
+using std::cerr; using std::endl;
 #include <sstream>
 using std::ostringstream;
 #include <iomanip>
 using std::setprecision;
 using std::fixed;
 #include <cmath>
-using std::sin; using std::cos; using std::exp;
-#include "mouse.h"
-Mouse mousy = Mouse();
+using std::sin; using std::exp;
 
 // Function prototypes
 void documentation();
@@ -44,7 +40,6 @@ void waveFun(GLdouble *, int, int);
 void drawBezierPatch(int, GLdouble *);
 void myDisplay();
 void myIdle();
-void resetMatrix(GLdouble);
 void resetZoom();
 void fixShaderFloat(GLfloat *);
 void myKeyboard(unsigned char, int, int);
@@ -93,7 +88,7 @@ GLdouble b2[SIZE] = {
    -1.5, 0.0, 0.0,  -1.5, 1.0, 0.0,  -2.5, 2.0, 0.0,  -3.5, 3.0, 0.0};
 
 // waveFun
-// Propogates a wave through one of the axes of a spline patch. 
+// Makes a wave through one of the axes of a spline patch. 
 void waveFun(GLdouble *arr, int column, int axis)
 {
     for (int i = 0; i < PTS; ++i)
@@ -169,10 +164,10 @@ void myDisplay()
     if(wave)
     {
         modd += 0.1;
-        waveFun(b1, 3, 2);
-        waveFun(b1, 2, 2);
-        waveFun(b2, 0, 2);
-        waveFun(b2, 1, 2);
+        waveFun(b1, 3, 2);  // Last set of points, using z-coords
+        waveFun(b1, 2, 2);  // Second to last set of points.
+        waveFun(b2, 0, 2);  // First points to second patch.
+        waveFun(b2, 1, 2);  // Second set of points.
     }
 
     drawBezierPatch(numsubdivs, b1);
@@ -197,14 +192,6 @@ void myIdle()
     }
 }
 
-// reset()
-// Resets the given matrix to the identity
-void resetMatrix(GLdouble *arr)
-{
-    glLoadIdentity();
-    glGetDoublev(GL_MODELVIEW_MATRIX, arr);
-}
-
 // fixShaderFloat
 // Makes sure that the shader float does not exceed the bounds [0,1].
 void fixShaderFloat(GLfloat *f)
@@ -218,7 +205,8 @@ void fixShaderFloat(GLfloat *f)
 void resetZoom()
 {
     zoom = 5;
-    resetMatrix(viewmatrix);
+    glLoadIdentity();
+    glGetDoublev(GL_MODELVIEW_MATRIX, viewmatrix);
 }
 
 // myKeyboard
@@ -335,14 +323,6 @@ void init()
     prog1 = makeProgramObjectFromFiles(vshader1fname, fshader1fname);
 }
 
-// myPassiveMotion
-// The GLUT passiveMotion function
-void myPassiveMotion(int x, int y)
-{
-    // Save mouse position in class (haha)
-    mousy.saveMouse(x, y);
-}
-
 // The main
 int main(int argc, char ** argv)
 {
@@ -369,10 +349,8 @@ int main(int argc, char ** argv)
     glutDisplayFunc(myDisplay);
     glutIdleFunc(myIdle);
     glutReshapeFunc(myReshape);
-//    glutMouseFunc(myMouse);
     glutKeyboardFunc(myKeyboard);
     glutSpecialFunc(mySpecial);
-    glutPassiveMotionFunc(myPassiveMotion);
 
     // Start GLUT event handling loop
     glutMainLoop();
