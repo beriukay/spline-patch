@@ -57,6 +57,7 @@ const int ESCKEY = 27;         // ASCII value of Escape
 const int startwinsize = 600;  // Start window width & height (pixels)
 int winw = 1, winh = 1;        // Window width, height (pixels)
 bool help = false;
+bool wireFrame;
 
 // Shaders
 bool shaderbool1 = true;
@@ -115,7 +116,8 @@ void drawBezierPatch(int subdivs, GLdouble *cpts)
     glEnable(GL_AUTO_NORMAL);
 
     glFrontFace(GL_CW);  // Normals are evidently backwards here :-(
-    glEvalMesh2(GL_LINE, 0, subdivs, 0, subdivs);
+    wireFrame ? glEvalMesh2(GL_LINE, 0, subdivs, 0, subdivs) 
+    	      : glEvalMesh2(GL_FILL, 0, subdivs, 0, subdivs);
     glFrontFace(GL_CCW);
 }
 
@@ -253,6 +255,10 @@ void myKeyboard(unsigned char key, int x, int y)
         if(numsubdivs < maxsubdivs)
             ++numsubdivs;
         break;
+    case 'w':
+    case 'W':
+    	wireFrame = !wireFrame;
+	break;
     case 'h':
     case 'H':
         help = !help;
@@ -323,6 +329,7 @@ void init()
     modd = 0.0;
     wave = false;
     numsubdivs = 10;
+    wireFrame = false;
 
     // Shaders
     prog1 = makeProgramObjectFromFiles(vshader1fname, fshader1fname);
@@ -392,8 +399,12 @@ void documentation()
             p.print("( )            Change Subdivisions (" + os2.str() + ")");
             p.print("+/-            Zoom in/out");
             p.print("r              Reset Camera");
+            p.print(string("w              Wire-Frame (" )
+	    		+ (wireFrame ? "true" : "false") + ")");
             p.print(string("space          Start wave (" )
                         + (wave ? "true" : "false") + ")");
+            p.print(string("f              Lighting (" )
+                        + (shaderbool1 ? "true" : "false") + ")");
         }
         else
         {
