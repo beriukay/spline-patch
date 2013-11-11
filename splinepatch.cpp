@@ -2,7 +2,7 @@
  * Paul Gentemann
  * CS 381
  * File Name : splinepatch.cpp
- * Last Modified : Sun 10 Nov 2013 05:16:20 AM AKST
+ * Last Modified : Mon 11 Nov 2013 05:33:42 AM AKST
  * Description : A pair of spline plains, patched together, that will
  * ripple upon user input.
  */
@@ -44,20 +44,18 @@ void waveFun(int);
 void drawBezierPatch(int, GLdouble *);
 void myDisplay();
 void myIdle();
-void reset(GLdouble);
+void resetMatrix(GLdouble);
 void myKeyboard(unsigned char, int, int);
 void myPassiveMotion(int, int);
 void init();
 void myReshape(int, int);
-void set(GLdouble, GLdouble, GLdouble, GLdouble,
-         GLdouble, GLdouble, GLdouble, GLdouble);
 
 // Global variables
 const int ESCKEY = 27;         // ASCII value of Escape
 const int startwinsize = 600;  // Start window width & height (pixels)
 int winw = 1, winh = 1;        // Window width, height (pixels)
 bool help = false;
-int zoom = -4;
+int zoom = 4;
 
 // Shaders
 bool shaderbool1 = true;
@@ -66,12 +64,10 @@ string fshader1fname;          // Filename for fragment shader source
 GLhandleARB prog1;             // GLSL Program Object
 GLfloat shaderfloat1 = .5;
 
-// Camera
-GLdouble viewmatrix[16],
-         viewang = 5.;         // Degrees
+GLdouble viewmatrix[16];       // Camera matrix
 
 // Wave/Spline Patches
-int numsubdivs;           // Number of subdivisions for object
+int numsubdivs;                // Number of subdivisions for object
 const int minsubdivs = 1;      //  Minumum of above
 const int maxsubdivs = 50;     //  Maximum of above
 const int PTS = 4;             // Number of control points in a patch
@@ -81,16 +77,16 @@ bool wave;                     // Starts the wave propagation.
 double modd;                   // Value for the waves in the Bezier patches
 
 GLdouble b1[SIZE] = {
-    1.5,-1.5, 0.0,   1.5,-0.5,-0.0,   1.5, 0.5,-0.0,   1.5, 1.5, 0.0,
-    0.5,-1.5, 0.0,   0.5,-0.5, 0.0,   0.5, 0.5, 0.0,   0.5, 1.5, 0.0,
-   -0.5,-1.5, 0.0,  -0.5,-0.5, 0.0,  -0.5, 0.5,-0.0,  -0.5, 1.5, 0.0,
-   -1.5,-1.5, 0.0,  -1.5,-0.5,-0.0,  -1.5, 0.5, 0.0,  -1.5, 1.5, 0.0};
+    1.5,-3.0, 0.0,   1.5,-2.0, 0.0,   1.5,-1.0, 0.0,   1.5, 0.0, 0.0,
+    0.5,-3.0, 0.0,   0.5,-2.0, 0.0,   0.5,-1.0, 0.0,   0.5, 0.0, 0.0,
+   -0.5,-3.0, 0.0,  -0.5,-2.0, 0.0,  -0.5,-1.0, 0.0,  -0.5, 0.0, 0.0,
+   -1.5,-3.0, 0.0,  -1.5,-2.0, 0.0,  -1.5,-1.0, 0.0,  -1.5, 0.0, 0.0};
 
 GLdouble b2[SIZE] = {
-    1.5, 0.5, 0.0,   1.5, 1.5,-0.0,   2.5, 1.8,-0.0,   3.0, 3.5,-0.0,
-    0.5, 0.5, 0.0,   0.5, 1.5, 0.0,   1.5, 2.0, 0.0,   0.0, 3.5, 0.0,
-   -0.5, 0.5, 0.0,  -0.5, 1.5,-0.0,  -1.5, 2.3,-0.0,  -0.0, 3.5,-0.0,
-   -1.5, 0.5, 0.0,  -1.5, 1.5, 0.0,  -2.5, 2.8, 0.0,  -3.0, 3.5, 0.0};
+    1.5, 0.0, 0.0,   1.5, 1.0, 0.0,   1.5, 2.0, 0.0,   1.5, 3.0, 0.0,
+    0.5, 0.0, 0.0,   0.5, 1.0, 0.0,   0.5, 2.0, 0.0,   0.5, 3.0, 0.0,
+   -0.5, 0.0, 0.0,  -0.5, 1.0, 0.0,  -0.5, 2.0, 0.0,  -0.5, 3.0, 0.0,
+   -1.5, 0.0, 0.0,  -1.5, 1.0, 0.0,  -1.5, 2.0, 0.0,  -1.5, 3.0, 0.0};
 
 // waveFun
 // Propogates a wave through one of the axes of a spline patch. 
@@ -98,7 +94,7 @@ void waveFun(GLdouble *arr, int column, int axis, int mult)
 {
     for (int i = 0; i < PTS; ++i)
     {
-        arr[PTS * 3 * i + (3 * column + axis)] = mult * sin(modd);
+        arr[PTS * 3 * i + (3 * column + axis)] = sin(modd);
     }
 }
 
@@ -169,7 +165,7 @@ void myDisplay()
     }
 
     // Draw objects
-    glTranslated(0,0,zoom);
+    glTranslated(0,0, -zoom);
     if(wave)
     {
         modd += 0.1;
@@ -203,21 +199,9 @@ void myIdle()
     }
 }
 
-// set()
-// Sets given matrix to given translation/rotation.
-void set(GLdouble *arr, GLdouble tx, GLdouble ty, GLdouble tz,
-         GLdouble rang=0., GLdouble rx=0., GLdouble ry=0., GLdouble rz=0.)
-{
-    glLoadIdentity();
-    glTranslated(tx, ty, tz);
-    glRotated(rang, rx, ry, rz);
-    glMultMatrixd(arr);
-    glGetDoublev(GL_MODELVIEW_MATRIX, arr);
-}
-
 // reset()
 // Resets the given matrix to the identity
-void reset(GLdouble *arr)
+void resetMatrix(GLdouble *arr)
 {
     glLoadIdentity();
     glGetDoublev(GL_MODELVIEW_MATRIX, arr);
@@ -233,29 +217,15 @@ void myKeyboard(unsigned char key, int x, int y)
         exit(0);
         break;
     case '+':
-        ++zoom;
-        set(viewmatrix, 0., 0., 1.);
+        --zoom;
         break;
     case '-':
-        --zoom;
-        set(viewmatrix, 0., 0.,-1.);
-        break;
-    case '<':
-        set(viewmatrix, 0., -1., 0., 10,1,0,0);
-        break;
-    case '>':
-        set(viewmatrix, 0., 1., 0., -10,1,0,0);
-        break;
-    case ',':
-        set(viewmatrix, 0., -1., 0., 10,0,1,0);
-        break;
-    case '.':
-        set(viewmatrix, 0., 1., 0., -10,0,1,0);
+        ++zoom;
         break;
     case 'R':
     case 'r':
-        zoom = -4;
-        reset(viewmatrix);
+        zoom = 4;
+        resetMatrix(viewmatrix);
         break;
     case ' ':
         wave = !wave;
@@ -293,8 +263,7 @@ void myKeyboard(unsigned char key, int x, int y)
 // The GLUT special function
 void mySpecial(int key, int x, int y)
 {
-    glLoadMatrixd(viewmatrix);
-    glTranslated(0., 0., zoom);
+    glTranslated(0., 0., -zoom);
     switch (key)
     {
         case GLUT_KEY_LEFT:
@@ -304,14 +273,16 @@ void mySpecial(int key, int x, int y)
             glRotated(5, 0., 1., 0.);
             break;
         case GLUT_KEY_UP:
-            glRotated(-5, 0., 0., 1.);
+            glRotated(-5, 1., 0., 0.);
             break;
         case GLUT_KEY_DOWN:
-            glRotated(5, 0., 0., 1.);
+            glRotated(5, 1., 0., 0.);
             break;
     }
-    glTranslated(0., 0., -zoom);
+    glTranslated(0., 0., zoom);
+    glMultMatrixd(viewmatrix);
     glGetDoublev(GL_MODELVIEW_MATRIX, viewmatrix);
+
     glutPostRedisplay();
 }
 
@@ -324,7 +295,6 @@ void myReshape(int w, int h)
     winw = w;
     winh = h;
     // Set up projection
-    // Perspective projection with near quite near & far pretty far
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluPerspective(60., double(w)/h, 0.01, 100.);
@@ -335,7 +305,8 @@ void myReshape(int w, int h)
 // Initialize GL states & global data
 void init()
 {
-    reset(viewmatrix);    // Reset camera position
+    resetMatrix(viewmatrix);    // Reset camera position
+    cout << endl;
     glMatrixMode(GL_MODELVIEW);
     modd = 0.0;
     wave = false;
@@ -358,9 +329,9 @@ int main(int argc, char ** argv)
 {
     // Initilization of OpenGL/GLUT
     glutInit(&argc, argv);
-    // Set shader source filenames. Done here, as opposed to in
+    // Set shader source filenames. Done here, as opposed to init() so we can 
+    // use command line arguments.
     getShaderFilenames(vshader1fname, fshader1fname, argc, argv);
-    //  function init, so that we can use command-line arguments.
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 
     // Creating the view window
@@ -400,7 +371,7 @@ void documentation()
         glLoadIdentity();
         gluOrtho2D(0., double(winw), 0., double(winh));
         glColor3d(0., 0., 0.);        // Black text
-        BitmapPrinter p(20., winh-20., 20.);
+        BitmapPrinter p(20., winh - 20., 20.);
         if(help)
         {
             ostringstream os2;
@@ -409,7 +380,8 @@ void documentation()
             p.print("( )            Change Subdivisions (" + os2.str() + ")");
             p.print("+/-            Zoom in/out");
             p.print("r              Reset Camera");
-            p.print(string("space          Start wave (" )+ (wave ? "true" : "false") + ")");
+            p.print(string("space          Start wave (" )
+                        + (wave ? "true" : "false") + ")");
         }
         else
         {
