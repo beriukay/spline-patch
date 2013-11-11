@@ -2,7 +2,7 @@
  * Paul Gentemann
  * CS 381
  * File Name : splinepatch.cpp
- * Last Modified : Mon 11 Nov 2013 05:33:42 AM AKST
+ * Last Modified : Mon 11 Nov 2013 06:55:20 AM AKST
  * Description : A pair of spline plains, patched together, that will
  * ripple upon user input.
  */
@@ -45,6 +45,8 @@ void drawBezierPatch(int, GLdouble *);
 void myDisplay();
 void myIdle();
 void resetMatrix(GLdouble);
+void resetZoom();
+void fixShaderFloat(GLfloat);
 void myKeyboard(unsigned char, int, int);
 void myPassiveMotion(int, int);
 void init();
@@ -55,16 +57,17 @@ const int ESCKEY = 27;         // ASCII value of Escape
 const int startwinsize = 600;  // Start window width & height (pixels)
 int winw = 1, winh = 1;        // Window width, height (pixels)
 bool help = false;
-int zoom = 4;
 
 // Shaders
 bool shaderbool1 = true;
 string vshader1fname;          // Filename for vertex shader source
 string fshader1fname;          // Filename for fragment shader source
 GLhandleARB prog1;             // GLSL Program Object
-GLfloat shaderfloat1 = .5;
+GLfloat shaderfloat1 = 1.;
 
-GLdouble viewmatrix[16];       // Camera matrix
+// Camera 
+GLdouble viewmatrix[16];       
+int zoom;
 
 // Wave/Spline Patches
 int numsubdivs;                // Number of subdivisions for object
@@ -76,12 +79,12 @@ const int SIZE = PTS*EDGES*3;  // Size of Patch Arrays
 bool wave;                     // Starts the wave propagation.
 double modd;                   // Value for the waves in the Bezier patches
 
+// Bezier Patches
 GLdouble b1[SIZE] = {
     1.5,-3.0, 0.0,   1.5,-2.0, 0.0,   1.5,-1.0, 0.0,   1.5, 0.0, 0.0,
     0.5,-3.0, 0.0,   0.5,-2.0, 0.0,   0.5,-1.0, 0.0,   0.5, 0.0, 0.0,
    -0.5,-3.0, 0.0,  -0.5,-2.0, 0.0,  -0.5,-1.0, 0.0,  -0.5, 0.0, 0.0,
    -1.5,-3.0, 0.0,  -1.5,-2.0, 0.0,  -1.5,-1.0, 0.0,  -1.5, 0.0, 0.0};
-
 GLdouble b2[SIZE] = {
     1.5, 0.0, 0.0,   1.5, 1.0, 0.0,   1.5, 2.0, 0.0,   1.5, 3.0, 0.0,
     0.5, 0.0, 0.0,   0.5, 1.0, 0.0,   0.5, 2.0, 0.0,   0.5, 3.0, 0.0,
@@ -94,7 +97,7 @@ void waveFun(GLdouble *arr, int column, int axis, int mult)
 {
     for (int i = 0; i < PTS; ++i)
     {
-        arr[PTS * 3 * i + (3 * column + axis)] = sin(modd);
+        arr[PTS * 3 * i + (3 * column + axis)] = mult * sin(modd);
     }
 }
 
@@ -111,7 +114,7 @@ void drawBezierPatch(int subdivs, GLdouble *cpts)
     glEnable(GL_AUTO_NORMAL);
 
     glFrontFace(GL_CW);  // Normals are evidently backwards here :-(
-    glEvalMesh2(GL_FILL, 0, subdivs, 0, subdivs);
+    glEvalMesh2(GL_LINE, 0, subdivs, 0, subdivs);
     glFrontFace(GL_CCW);
 }
 
@@ -123,27 +126,21 @@ void myDisplay()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     GLhandleARB theprog;  // CURRENTLY-used program object or 0 if none
-
-    // Activating the shaders
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Activate shaders
     theprog = prog1;
 
     glEnable(GL_DEPTH_TEST);    // Set up 3D
-
-    // Setting up the camera view
-    glLoadIdentity();
+    glLoadIdentity();           // Start with camera.
     glMultMatrixd(viewmatrix);
 
     // Position light source 0 & draw ball there
     glPushMatrix();
-        glTranslated(-1., 1., 2.);
-        GLfloat origin4[] = { 0.f, 0.f, 0.f, 1.f };
-        glLightfv(GL_LIGHT0, GL_POSITION, origin4);
-        GLfloat spotdir3[] = { 1.f, -1.f, -1.f };
-        glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, spotdir3);
+        glTranslated(-1., 1., 2.);  // Starting left, up, behind camera
+        GLfloat origin[] = { 0.f, 0.f, 0.f, 1.f };
+        glLightfv(GL_LIGHT0, GL_POSITION, origin);
         glUseProgramObjectARB(0);
-        glColor3d(1., 1., 1.);
-        glutSolidSphere(0.1, 20, 15);  // obj for light source
+        glColor3d(1., 1., 1.);          // white ball
+        glutSolidSphere(.5, 20, 15);   // obj for light source
     glPopMatrix();
 
     glUseProgramObjectARB(theprog);
@@ -164,23 +161,19 @@ void myDisplay()
         }
     }
 
-    // Draw objects
-    glTranslated(0,0, -zoom);
+    // Draw Objects
+    glTranslated(0,0, -zoom);   // Position objects out at distance
     if(wave)
     {
         modd += 0.1;
-        waveFun(b1, 2, 2, 1);
-        waveFun(b2, 2, 2, -1);
-        drawBezierPatch(numsubdivs, b1);
-        drawBezierPatch(numsubdivs, b2);
-    }
-    else
-    {
-        drawBezierPatch(numsubdivs, b1);
-        drawBezierPatch(numsubdivs, b2);
+        waveFun(b1, 3, 2, 1);
+        waveFun(b2, 0, 2, 1);
     }
 
-    documentation();
+    drawBezierPatch(numsubdivs, b1);
+    drawBezierPatch(numsubdivs, b2);
+    documentation();    
+
     glutSwapBuffers();
 }
 
@@ -207,6 +200,22 @@ void resetMatrix(GLdouble *arr)
     glGetDoublev(GL_MODELVIEW_MATRIX, arr);
 }
 
+// fixShaderFloat
+// Makes sure that the shader float does not exceed the bounds [0,1].
+void fixShaderFloat(GLfloat f)
+{
+    if (f < 0.) f = 0.;
+    if (f > 1.) f = 1.;
+}
+
+// resetZoom
+// Resets the initial zoom value (use everywhere for DRY)
+void resetZoom()
+{
+    zoom = 5;
+    resetMatrix(viewmatrix);
+}
+
 // myKeyboard
 // The GLUT keyboard function
 void myKeyboard(unsigned char key, int x, int y)
@@ -222,10 +231,12 @@ void myKeyboard(unsigned char key, int x, int y)
     case '-':
         ++zoom;
         break;
+    case '.':   // Insert a splash at point
+        
+        break;
     case 'R':
     case 'r':
-        zoom = 4;
-        resetMatrix(viewmatrix);
+        resetZoom();
         break;
     case ' ':
         wave = !wave;
@@ -247,13 +258,11 @@ void myKeyboard(unsigned char key, int x, int y)
         break;
     case '[':     // [: Decrease shader float
         shaderfloat1 -= 0.02;
-        if (shaderfloat1 < 0.)
-            shaderfloat1 = 0.;
+        fixShaderFloat(shaderfloat1);
         break;
     case ']':     // ]: Increase shader float
         shaderfloat1 += 0.02;
-        if (shaderfloat1 > 1.)
-            shaderfloat1 = 1.;
+        fixShaderFloat(shaderfloat1);
         break;
     }
     glutPostRedisplay();
@@ -305,8 +314,7 @@ void myReshape(int w, int h)
 // Initialize GL states & global data
 void init()
 {
-    resetMatrix(viewmatrix);    // Reset camera position
-    cout << endl;
+    resetZoom();    // Reset camera position to default.
     glMatrixMode(GL_MODELVIEW);
     modd = 0.0;
     wave = false;
