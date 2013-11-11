@@ -2,7 +2,7 @@
  * Paul Gentemann
  * CS 381
  * File Name : splinepatch.cpp
- * Last Modified : Mon 11 Nov 2013 06:55:20 AM AKST
+ * Last Modified : Mon 11 Nov 2013 08:13:48 AM AKST
  * Description : A pair of spline plains, patched together, that will
  * ripple upon user input.
  */
@@ -34,13 +34,13 @@ using std::ostringstream;
 using std::setprecision;
 using std::fixed;
 #include <cmath>
-using std::sin;
+using std::sin; using std::cos; using std::exp;
 #include "mouse.h"
 Mouse mousy = Mouse();
 
 // Function prototypes
 void documentation();
-void waveFun(int);
+void waveFun(GLdouble *, int, int);
 void drawBezierPatch(int, GLdouble *);
 void myDisplay();
 void myIdle();
@@ -77,27 +77,28 @@ const int PTS = 4;             // Number of control points in a patch
 const int EDGES = 4;           // Sides in a patch
 const int SIZE = PTS*EDGES*3;  // Size of Patch Arrays
 bool wave;                     // Starts the wave propagation.
-double modd;                   // Value for the waves in the Bezier patches
+GLdouble modd;                 // Value for the waves in the Bezier patches
 
 // Bezier Patches
 GLdouble b1[SIZE] = {
-    1.5,-3.0, 0.0,   1.5,-2.0, 0.0,   1.5,-1.0, 0.0,   1.5, 0.0, 0.0,
-    0.5,-3.0, 0.0,   0.5,-2.0, 0.0,   0.5,-1.0, 0.0,   0.5, 0.0, 0.0,
-   -0.5,-3.0, 0.0,  -0.5,-2.0, 0.0,  -0.5,-1.0, 0.0,  -0.5, 0.0, 0.0,
-   -1.5,-3.0, 0.0,  -1.5,-2.0, 0.0,  -1.5,-1.0, 0.0,  -1.5, 0.0, 0.0};
+    3.5,-3.0, 0.0,   2.5,-2.0, 0.0,   1.5,-1.0, 0.0,   1.5, 0.0, 0.0,
+    2.5,-3.0, 0.0,   0.5,-2.0, 0.0,   0.5,-1.0, 0.0,   0.5, 0.0, 0.0,
+   -2.5,-3.0, 0.0,  -0.5,-2.0, 0.0,  -0.5,-1.0, 0.0,  -0.5, 0.0, 0.0,
+   -3.5,-3.0, 0.0,  -2.5,-2.0, 0.0,  -1.5,-1.0, 0.0,  -1.5, 0.0, 0.0};
 GLdouble b2[SIZE] = {
-    1.5, 0.0, 0.0,   1.5, 1.0, 0.0,   1.5, 2.0, 0.0,   1.5, 3.0, 0.0,
+    1.5, 0.0, 0.0,   1.5, 1.0, 0.0,   2.5, 2.0, 0.0,   3.5, 3.0, 0.0,
     0.5, 0.0, 0.0,   0.5, 1.0, 0.0,   0.5, 2.0, 0.0,   0.5, 3.0, 0.0,
    -0.5, 0.0, 0.0,  -0.5, 1.0, 0.0,  -0.5, 2.0, 0.0,  -0.5, 3.0, 0.0,
-   -1.5, 0.0, 0.0,  -1.5, 1.0, 0.0,  -1.5, 2.0, 0.0,  -1.5, 3.0, 0.0};
+   -1.5, 0.0, 0.0,  -1.5, 1.0, 0.0,  -2.5, 2.0, 0.0,  -3.5, 3.0, 0.0};
 
 // waveFun
 // Propogates a wave through one of the axes of a spline patch. 
-void waveFun(GLdouble *arr, int column, int axis, int mult)
+void waveFun(GLdouble *arr, int column, int axis)
 {
     for (int i = 0; i < PTS; ++i)
     {
-        arr[PTS * 3 * i + (3 * column + axis)] = mult * sin(modd);
+        int pos = 3 * PTS * i + (3 * column + axis);
+        arr[pos] = exp(1-modd) * sin(2 * 3.14 * modd); // Dampened wave.
     }
 }
 
@@ -166,8 +167,10 @@ void myDisplay()
     if(wave)
     {
         modd += 0.1;
-        waveFun(b1, 3, 2, 1);
-        waveFun(b2, 0, 2, 1);
+        waveFun(b1, 3, 2);
+        waveFun(b1, 2, 2);
+        waveFun(b2, 0, 2);
+        waveFun(b2, 1, 2);
     }
 
     drawBezierPatch(numsubdivs, b1);
@@ -239,7 +242,8 @@ void myKeyboard(unsigned char key, int x, int y)
         resetZoom();
         break;
     case ' ':
-        wave = !wave;
+        wave = true;
+        modd = 0.;
         break;
     case '(':
         if(numsubdivs > minsubdivs)
