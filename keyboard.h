@@ -1,7 +1,7 @@
 /* Paul Gentemann
  * Bucky Frost
  * CS 381 Fall 2013
- * File Name : mouse.h
+ * File Name : keyboard.h
  * Last Modified : 2013-11-07
  * Description : Defines a cpp class for the gathering
  *      and storing state information about keyboard usage.
