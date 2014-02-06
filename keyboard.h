@@ -3,16 +3,10 @@
  * CS 381 Fall 2013
  * File Name : keyboard.h
  * Last Modified : 2013-11-07
-<<<<<<< Updated upstream
- * Description : Defines a cpp class for the gathering
- *      and storing state information about keyboard usage.
- *      Such as what buttons are currently depressed.
- *  This is a change to spline fiddling.
-=======
  * Description : Defines a cpp class for the gathering and storing state 
  * information about keyboard usage. Such as what buttons are currently 
  * depressed.
->>>>>>> Stashed changes
+ *  This is a change to spline fiddling.
  */
 
 #ifndef KEYBOARD_H
