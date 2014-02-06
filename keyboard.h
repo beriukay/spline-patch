@@ -6,6 +6,7 @@
  * Description : Defines a cpp class for the gathering
  *      and storing state information about keyboard usage.
  *      Such as what buttons are currently depressed.
+ *  This is a change to spline fiddling.
  */
 
 #ifndef KEYBOARD_H
